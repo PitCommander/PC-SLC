@@ -4,6 +4,7 @@ import org.pitcommander.slc.config.ConfigParser
 import org.pitcommander.slc.hardware.HardwareController
 import org.pitcommander.slc.network.AnnounceSocket
 import org.pitcommander.slc.network.Announcement
+import org.pitcommander.slc.network.Command
 import org.pitcommander.slc.network.CommandSocket
 
 /*
@@ -20,7 +21,7 @@ import org.pitcommander.slc.network.CommandSocket
  */
 
 fun main(args: Array<String>) {
-    val root = ConfigParser.fromFile("/home/cameronearle/Desktop/config.json")
+    val root = ConfigParser.fromFile()
     root.init()
 
     AnnounceSocket.server = root.server
@@ -28,32 +29,31 @@ fun main(args: Array<String>) {
 
     HardwareController.init()
 
-    //val announceThread = Thread(AnnounceSocket).apply { start() }
+    val announceThread = Thread(AnnounceSocket).apply { start() }
+    val commandThread = Thread(CommandSocket).apply { start() }
+    var ready = false
+    Thread {
+        println("SENDING PING")
+        CommandSocket.request(Command("PING", hashMapOf()))
+        println("PONG RECEIVED")
+        Handlers.handleRequests(root)
+        println("REQUESTS HANDLED")
+        root.lights.forEach {
+            it.light.state = LightStates.OFF
+        }
+        println("LIGHTS OFF")
+        ready = true
+    }.start()
 
     var announcement: Announcement? = null
     while (true) {
         HardwareController.tick()
-        announcement = AnnounceSocket.pop()
-
-        if (announcement != null) {
-            root.lights.forEach {
-                val light = it.light
-                val desc = it.desc
-                it.handlers.forEach { //Iterate each handler
-                    if (it.cmd == announcement?.id) { //If the handler matches the current announcement
-                        it.update(announcement?.payload!!) //Update the payload of the handler
-                        var scriptResult: Any? = null
-                        try {
-                            scriptResult = it.script.run() //Execute the script
-                        } catch (e: Exception) {
-                            System.out.println("Error in handler [${it.cmd}], light [$desc] (${e.localizedMessage})")
-                        }
-                        if (scriptResult != null && scriptResult is LightStates) {
-                            light.state = scriptResult //Set the light state
-                        }
-                    }
-                }
+        if (ready) {
+            announcement = AnnounceSocket.pop()
+            if (announcement != null) {
+                println("GOT ANNOUNCEMENT ${announcement.id}")
             }
+            Handlers.handleAnnouncement(root, announcement)
         }
         Thread.sleep(20)
     }

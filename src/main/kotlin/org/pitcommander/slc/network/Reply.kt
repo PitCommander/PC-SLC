@@ -13,5 +13,5 @@ package org.pitcommander.slc.network
  * @version 11/10/17
  */
 
-data class Reply(val reply: String,
+data class Reply(val id: String,
                  val payload: HashMap<String, Any>)

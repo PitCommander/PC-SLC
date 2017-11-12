@@ -22,21 +22,16 @@ data class CommandActionPair(val cmd: String,
                              val action: String) {
     @Transient lateinit var script: Script
     @Transient lateinit var payload: HashMap<String, Any>
-    @Transient lateinit var reply: Reply
 
-    fun update(payload: HashMap<String, Any>, reply: Reply? = null) {
+    fun update(payload: HashMap<String, Any>) {
         this.payload.clear()
         this.payload.putAll(payload)
-        if (reply != null) {
-            this.reply = reply
-        }
     }
 
     fun init() {
         payload = hashMapOf()
         val binding = LightStates.toBinding()
         binding.setVariable("p", payload)
-        binding.setVariable("r", reply)
 
         script = GroovyShell(binding).parse(action)
     }

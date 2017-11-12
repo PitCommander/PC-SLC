@@ -13,5 +13,5 @@ package org.pitcommander.slc.network
  * @version 11/10/17
  */
 
-data class Request(val request: String,
+data class Command(val id: String,
                    val payload: HashMap<String, Any>)

@@ -31,14 +31,13 @@ object AnnounceSocket: Runnable {
     override fun run() {
         val context = ZMQ.context(1)
         val socket = context.socket(ZMQ.SUB)
-        socket.receiveTimeOut = 1000
         socket.subscribe("".toByteArray())
         socket.connect("tcp://$server:$ANNOUNCE_PORT")
-        var currentData = ""
+        var currentData: String? = null
 
         while (!Thread.interrupted()) {
             currentData = socket.recvStr()
-            if (currentData.isNotEmpty()) {
+            if (currentData != null && currentData.isNotEmpty()) {
                 try {
                     queue.add(gson.fromJson(currentData, Announcement::class.java))
                 } catch (e: Exception) {}

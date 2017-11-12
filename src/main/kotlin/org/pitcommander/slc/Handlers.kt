@@ -1,9 +1,11 @@
 package org.pitcommander.slc
 
+import org.pitcommander.slc.config.CommandActionPair
 import org.pitcommander.slc.config.ConfigRoot
+import org.pitcommander.slc.hardware.Light
 import org.pitcommander.slc.network.Announcement
 import org.pitcommander.slc.network.CommandSocket
-import org.pitcommander.slc.network.Request
+import org.pitcommander.slc.network.Command
 
 /*
  * StacklightController - Created on 11/10/17
@@ -19,10 +21,26 @@ import org.pitcommander.slc.network.Request
  */
 
 object Handlers {
+    private fun runScript(pair: CommandActionPair, light: Light, payload: HashMap<String, Any>, desc: String) {
+        pair.update(payload)
+        var scriptResult: Any? = null
+        try {
+            scriptResult = pair.script.run()
+        } catch (e: Exception) {
+            System.err.println("Error running script for light [$desc] on action [${pair.cmd}] (${e.localizedMessage})")
+        }
+        if (scriptResult != null && scriptResult is LightStates) {
+            light.state = scriptResult
+        }
+    }
+
     fun handleRequests(root: ConfigRoot) {
         root.lights.forEach {
+            val light = it.light
+            val desc = it.desc
             it.requests.forEach {
-                val reply = CommandSocket.request(Request(it.cmd, hashMapOf()))
+                val reply = CommandSocket.request(Command(it.cmd, hashMapOf()))
+                runScript(it, light, reply.payload, desc)
             }
         }
     }
@@ -34,16 +52,7 @@ object Handlers {
                 val desc = it.desc
                 it.handlers.forEach {
                     if (it.cmd == announcement.id) {
-                        it.update(announcement.payload)
-                        var scriptResult: Any? = null
-                        try {
-                            scriptResult = it.script.run()
-                        } catch (e: Exception) {
-                            System.err.println("Error running script for light [$desc] on action [${it.cmd}] (${e.localizedMessage})")
-                        }
-                        if (scriptResult != null && scriptResult is LightStates) {
-                            light.state = scriptResult
-                        }
+                        runScript(it, light, announcement.payload, desc)
                     }
                 }
             }

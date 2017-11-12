@@ -23,7 +23,7 @@ import org.pitcommander.slc.config.ConfigRoot
 object HardwareController {
     private lateinit var gpio: GpioController
     private val lights = arrayListOf<Light>()
-    private const val DEBUG = true
+    private const val DEBUG = false
 
     init {
         if (!DEBUG) {
