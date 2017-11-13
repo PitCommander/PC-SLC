@@ -20,16 +20,9 @@ import org.pitcommander.slc.config.ConfigRoot
  * @version 11/9/17
  */
 
-object HardwareController {
-    private lateinit var gpio: GpioController
+object HardwareController: Runnable {
+    //private val gpio = GpioFactory.getInstance()
     private val lights = arrayListOf<Light>()
-    private const val DEBUG = false
-
-    init {
-        if (!DEBUG) {
-            gpio = GpioFactory.getInstance()
-        }
-    }
 
     private object StateManager {
         var lastBlink = 0L
@@ -71,11 +64,7 @@ object HardwareController {
 
     fun init() {
         lights.forEach {
-            if (!DEBUG) {
-                it.hardwarePin = gpio.provisionDigitalOutputPin(RaspiPin.getPinByAddress(it.pin))
-            } else {
-                it.hardwarePin = EmulatedPin()
-            }
+            //it.hardwarePin = gpio.provisionDigitalOutputPin(RaspiPin.getPinByAddress(it.pin))
         }
 
         StateManager.init()
@@ -91,11 +80,9 @@ object HardwareController {
                 LightStates.BLINK -> it.hardwarePin.setState(StateManager.blinkState)
                 LightStates.STROBE -> it.hardwarePin.setState(StateManager.strobeState)
             }
-
-            if (DEBUG) {
-                println(" ${it.hardwarePin} ")
-            }
         }
 
     }
+
+    override fun run() = tick()
 }

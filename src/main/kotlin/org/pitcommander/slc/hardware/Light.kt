@@ -16,7 +16,10 @@ import org.pitcommander.slc.LightStates
  * @version 11/9/17
  */
 
-data class Light(val pin: Int,
-                 var state: LightStates) {
+class Light(val pin: Int, state: LightStates) {
+    var state: LightStates = state
+        @Synchronized get
+        @Synchronized set
+
     lateinit var hardwarePin: GpioPinDigitalOutput
 }

@@ -2,10 +2,9 @@ package org.pitcommander.slc.network
 
 import com.google.gson.Gson
 import org.zeromq.ZMQ
-import java.util.concurrent.ConcurrentLinkedDeque
 
 /*
- * StacklightController - Created on 11/10/17
+ * PC-SLC - Created on 11/12/17
  * Author: Cameron Earle
  * 
  * This code is licensed under the GNU GPL v3
@@ -14,34 +13,30 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 /**
  * @author Cameron Earle
- * @version 11/10/17
+ * @version 11/12/17
  */
 
-object AnnounceSocket: Runnable {
-    private val queue = ConcurrentLinkedDeque<Announcement>()
-    private const val ANNOUNCE_PORT = 5800
+object AnnounceSocket {
+    private var server = ""
+    private var port = 0
 
-    var server = ""
+    private lateinit var context: ZMQ.Context
+    private lateinit var socket: ZMQ.Socket
+
     private val gson = Gson()
 
-    fun pop(): Announcement? {
-        return queue.pollFirst()
+    fun init() {
+        context = ZMQ.context(1)
+        socket = context.socket(ZMQ.SUB)
     }
 
-    override fun run() {
-        val context = ZMQ.context(1)
-        val socket = context.socket(ZMQ.SUB)
+    fun connect(server: String, port: Int) {
+        socket.connect("tcp://$server:$port")
         socket.subscribe("".toByteArray())
-        socket.connect("tcp://$server:$ANNOUNCE_PORT")
-        var currentData: String? = null
+    }
 
-        while (!Thread.interrupted()) {
-            currentData = socket.recvStr()
-            if (currentData != null && currentData.isNotEmpty()) {
-                try {
-                    queue.add(gson.fromJson(currentData, Announcement::class.java))
-                } catch (e: Exception) {}
-            }
-        }
+    fun read(): Announcement {
+        val input = socket.recvStr()
+        return gson.fromJson(input, Announcement::class.java)
     }
 }

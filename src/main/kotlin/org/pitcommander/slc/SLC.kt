@@ -6,6 +6,8 @@ import org.pitcommander.slc.network.AnnounceSocket
 import org.pitcommander.slc.network.Announcement
 import org.pitcommander.slc.network.Command
 import org.pitcommander.slc.network.CommandSocket
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /*
  * StacklightController - Created on 11/9/17
@@ -21,40 +23,36 @@ import org.pitcommander.slc.network.CommandSocket
  */
 
 fun main(args: Array<String>) {
-    val root = ConfigParser.fromFile()
+    // READ CONFIG
+    val root = ConfigParser.fromFile("/home/cameronearle/Desktop/config.json")
     root.init()
 
-    AnnounceSocket.server = root.server
-    CommandSocket.server = root.server
+    // INIT SOCKETS
+    AnnounceSocket.init()
+    CommandSocket.init()
 
+    // INIT HW CONTROLLER
     HardwareController.init()
+    val hardwareExecutor = Executors.newSingleThreadScheduledExecutor()
+    hardwareExecutor.scheduleAtFixedRate(HardwareController, 0L, 20L, TimeUnit.MILLISECONDS)
 
-    val announceThread = Thread(AnnounceSocket).apply { start() }
-    val commandThread = Thread(CommandSocket).apply { start() }
-    var ready = false
-    Thread {
-        println("SENDING PING")
-        CommandSocket.request(Command("PING", hashMapOf()))
-        println("PONG RECEIVED")
-        Handlers.handleRequests(root)
-        println("REQUESTS HANDLED")
-        root.lights.forEach {
-            it.light.state = LightStates.OFF
-        }
-        println("LIGHTS OFF")
-        ready = true
-    }.start()
+    // CONNECT SOCKETS
+    AnnounceSocket.connect(root.server, 5800)
+    CommandSocket.connect(root.server, 5801)
 
-    var announcement: Announcement? = null
+    // PING
+    CommandSocket.request(Command("PING", hashMapOf()))
+    root.lights.forEach {
+        it.light.state = LightStates.OFF
+    }
+
+    // HANDLE REQUESTS
+    Handlers.handleRequests(root)
+
+    // HANDLE ANNOUNCEMENTS
+    var announcement: Announcement?
     while (true) {
-        HardwareController.tick()
-        if (ready) {
-            announcement = AnnounceSocket.pop()
-            if (announcement != null) {
-                println("GOT ANNOUNCEMENT ${announcement.id}")
-            }
-            Handlers.handleAnnouncement(root, announcement)
-        }
-        Thread.sleep(20)
+        announcement = AnnounceSocket.read()
+        Handlers.handleAnnouncement(root, announcement)
     }
 }
