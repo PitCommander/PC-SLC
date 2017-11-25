@@ -21,8 +21,9 @@ import org.pitcommander.slc.config.ConfigRoot
  */
 
 object HardwareController: Runnable {
-    //private val gpio = GpioFactory.getInstance()
+    private val gpio = GpioFactory.getInstance()
     private val lights = arrayListOf<Light>()
+    private var inverted = false
 
     private object StateManager {
         var lastBlink = 0L
@@ -62,10 +63,12 @@ object HardwareController: Runnable {
         return light
     }
 
-    fun init() {
+    fun init(inverted: Boolean) {
         lights.forEach {
-            //it.hardwarePin = gpio.provisionDigitalOutputPin(RaspiPin.getPinByAddress(it.pin))
+            it.hardwarePin = gpio.provisionDigitalOutputPin(RaspiPin.getPinByAddress(it.pin))
         }
+
+        this.inverted = inverted
 
         StateManager.init()
     }
@@ -75,10 +78,10 @@ object HardwareController: Runnable {
 
         lights.forEach {
             when (it.state) {
-                LightStates.OFF -> it.hardwarePin.low()
-                LightStates.ON -> it.hardwarePin.high()
-                LightStates.BLINK -> it.hardwarePin.setState(StateManager.blinkState)
-                LightStates.STROBE -> it.hardwarePin.setState(StateManager.strobeState)
+                LightStates.OFF -> if (!inverted) it.hardwarePin.low() else it.hardwarePin.high()
+                LightStates.ON -> if (!inverted) it.hardwarePin.high() else it.hardwarePin.low()
+                LightStates.BLINK -> it.hardwarePin.setState(if (!inverted) StateManager.blinkState else !StateManager.blinkState)
+                LightStates.STROBE -> it.hardwarePin.setState(if (!inverted) StateManager.strobeState else !StateManager.strobeState)
             }
         }
 

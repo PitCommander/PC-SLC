@@ -32,7 +32,7 @@ fun main(args: Array<String>) {
     CommandSocket.init()
 
     // INIT HW CONTROLLER
-    HardwareController.init()
+    HardwareController.init(root.inverted)
     val hardwareExecutor = Executors.newSingleThreadScheduledExecutor()
     hardwareExecutor.scheduleAtFixedRate(HardwareController, 0L, 20L, TimeUnit.MILLISECONDS)
 

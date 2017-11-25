@@ -14,6 +14,7 @@ package org.pitcommander.slc.config
  */
 
 data class ConfigRoot(val server: String,
+                      val inverted: Boolean = false,
                       val lights: ArrayList<ConfigElement>) {
     fun init() {
         lights.forEach { it.init() }
