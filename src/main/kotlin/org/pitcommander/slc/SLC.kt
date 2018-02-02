@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 
 fun main(args: Array<String>) {
     // READ CONFIG
-    val root = ConfigParser.fromFile("/home/cameronearle/Desktop/config.json")
+    val root = ConfigParser.fromFile()
     root.init()
 
     // INIT SOCKETS
